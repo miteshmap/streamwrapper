@@ -1,0 +1,83 @@
+<?php
+
+/**
+ * Implemnets hook_init()
+
+function custom_scheme_init() {
+  $uri = 'chrome://download.png';
+  watchdog('realpath', file_create_url($uri));
+}
+ */
+
+/**
+ * Implements hook_stream_wrappers().
+ */
+function custom_scheme_stream_wrappers() {
+  return array(
+    'chrome' => array(
+      'name' => t('Chrome files'),
+      'class' => 'ChromeStreamWrapper',
+      'description' => t('Chrome files served by server'),
+      'type' => STREAM_WRAPPERS_LOCAL_NORMAL,
+    ),
+  );
+}
+
+/**
+ * Default files (chrome://) stream wrapper class.
+ */
+class ChromeStreamWrapper extends DrupalLocalStreamWrapper {
+
+  /**
+   * Overrides getDirectoryPath().
+   */
+  public function getDirectoryPath() {
+    return 'sites/default/files/chrome';
+  }
+
+  /**
+   * Overrides getExternalUrl().
+   */
+  public function getExternalUrl() {
+    $path = str_replace('\\', '/', $this->getTarget());
+    return url('chrome/image/' . $path, array('absolute' => TRUE));
+  }
+}
+
+
+/**
+ * Implements hook_menu().
+ */
+function custom_scheme_menu() {
+  $items = array();
+
+  $items['chrome/image'] = array(
+    'title' => 'View files',
+    'page callback' => 'file_download',
+    'page arguments' => array('chrome'),
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+
+/**
+ * Implements hook_file_download().
+ *
+ * Construct the headers to ensure the file gets downloaded
+ */
+function custom_scheme_file_download($uri) {
+  list($scheme, $path) = explode('://', $uri, 2);
+  if ($scheme=='chrome') {
+    $file = (object) array(
+      'filename' => basename($path),
+      'filemime' => file_get_mimetype($uri),
+      'filesize' => filesize(drupal_realpath($uri)),
+    );
+    $headers = file_get_content_headers($file);
+    unset($headers['Content-Disposition']);
+    return $headers;
+  }
+}

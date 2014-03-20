@@ -1,0 +1,5 @@
+name = Custom Scheme
+description = A custom scheme for the site file url.
+core = 7.x
+version = 7.x-1.0
+package = custom
